@@ -3,15 +3,9 @@ import "dotenv/config";
 import path from "path";
 import fs from "fs";
 
-import { z } from "zod";
-
 import { OpenAI } from "langchain/llms/openai";
 import { PromptTemplate } from "langchain/prompts";
 import { LLMChain } from "langchain/chains";
-import {
-	StructuredOutputParser,
-	OutputFixingParser,
-} from "langchain/output_parsers";
 
 import convertSrt from "./srt-to-logseq";
 
@@ -126,7 +120,7 @@ Here is the file I'd like you to convert:
 });
 
 const llm = new OpenAI({
-	modelName: "gpt-4-32k",
+	modelName: "gpt-4",
 	temperature: 0.5,
 });
 
@@ -136,15 +130,24 @@ const chain = new LLMChain({
 });
 
 const run = async () => {
-	const content = await convertSrtFile();
-
-	const { text: result } = await chain.call({ fileContents: content });
-
 	const outputFile = path.join(OUTPUT_PATH, "mind-coach_2023-07-31.md");
 
-	console.log(`Saving to ${outputFile}`);
-	await fs.promises.writeFile(outputFile, result, "utf8");
-	console.log("Done!");
+	const content = await convertSrtFile();
+
+	try {
+		const result = await chain.call({ fileContents: content });
+
+		console.log(`Saving to ${outputFile}`);
+		await fs.promises.writeFile(outputFile, result.output, "utf8");
+
+		console.log("Done!");
+	} catch (e: any) {
+		if (e?.response?.data?.error) {
+			console.error(e.response.data.error);
+		} else {
+			console.error(e);
+		}
+	}
 };
 
 run();
