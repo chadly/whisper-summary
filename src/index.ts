@@ -126,7 +126,7 @@ Here is the file I'd like you to convert:
 });
 
 const llm = new OpenAI({
-	modelName: "gpt-4",
+	modelName: "gpt-4-32k",
 	temperature: 0.5,
 });
 
