@@ -13,141 +13,138 @@ import {
 	OutputFixingParser,
 } from "langchain/output_parsers";
 
-const DESTINATION_PATH = path.join(__dirname, "..", "output");
-const PATH = "/mnt/c/Users/Chad Lee/Documents/zettelkasten";
+import convertSrt from "./srt-to-logseq";
 
-const parser = StructuredOutputParser.fromZodSchema(
-	z.object({
-		filename: z
-			.string()
-			.describe("The new filename should be the date of the plantedAt field"),
-		contents: z.string().describe("The transformed contents of the file"),
-	})
-);
+const PATH =
+	"/mnt/c/Users/Chad Lee/Documents/logseq/assets/GMT20230731-140118_Recording_1690832979802_0.srt";
 
-const formatInstructions = parser.getFormatInstructions();
+const OUTPUT_PATH = path.join(__dirname, "..", "output");
+
+async function convertSrtFile() {
+	const content = await fs.promises.readFile(PATH, "utf8");
+	return convertSrt(content);
+}
 
 const prompt = new PromptTemplate({
 	inputVariables: ["fileContents"],
-	partialVariables: { formatInstructions },
 	template: `
-I would like you to reformat a markdown file according to the following specifications:
+I would like you to take this transcript of a conversation and break it up into logical sections
+with headings and a short description summarizing each section.
 
-The frontmatter of the file should have a plantedAt date field. I'd like you to strip all
-frontmatter from the file, and reformat the contents by replacing each paragraph with
-an indented bulleted list.
+For example, this content:
 
-For example, if a file named "3 Things.md" looks like this:
+- {{renderer :media-timestamp, 0}} Hello.
+- {{renderer :media-timestamp, 25.48}} Good morning.
+- {{renderer :media-timestamp, 27.48}} How are you?
+- {{renderer :media-timestamp, 28.48}} Good.
+- {{renderer :media-timestamp, 30.48}} Caffeinated.
+- {{renderer :media-timestamp, 31.48}} Feeling good.
+- {{renderer :media-timestamp, 32.48}} Yeah.
+- {{renderer :media-timestamp, 33.48}} Nice.
+- {{renderer :media-timestamp, 34.48}} Me too.
+- {{renderer :media-timestamp, 35.48}} I just had an energy drink.
+- {{renderer :media-timestamp, 37.48}} Oh, nice.
+- {{renderer :media-timestamp, 38.48}} Good.
+- {{renderer :media-timestamp, 39.48}} We're both bouncing off the walls on this very last day of July.
+- {{renderer :media-timestamp, 43.48}} Oh, is that what it is?
+- {{renderer :media-timestamp, 45.48}} Yeah, it is.
+- {{renderer :media-timestamp, 46.48}} Oh, shit.
+- {{renderer :media-timestamp, 47.48}} Rent's due.
+- {{renderer :media-timestamp, 48.48}} Boy, that's not a problem.
+- {{renderer :media-timestamp, 49.48}} It's fine.
+- {{renderer :media-timestamp, 50.48}} Everything's fine.
+- {{renderer :media-timestamp, 51.48}} Yes.
+- {{renderer :media-timestamp, 52.48}} Yes.
+- {{renderer :media-timestamp, 53.48}} And school starts.
+- {{renderer :media-timestamp, 55.48}} Oh, that's a good thing.
+- {{renderer :media-timestamp, 57.48}} Two weeks.
+- {{renderer :media-timestamp, 58.48}} I don't know when this, when this.
+- {{renderer :media-timestamp, 60.48}} Your kids start.
+- {{renderer :media-timestamp, 62.48}} Yeah, I think it's happening.
+- {{renderer :media-timestamp, 63.48}} I just have a vague sense that it's coming.
+- {{renderer :media-timestamp, 66.48}} I think very soon.
+- {{renderer :media-timestamp, 68.48}} Right.
+- {{renderer :media-timestamp, 69.48}} It's like, oh, beginning August.
+- {{renderer :media-timestamp, 70.48}} And it's like, oh, crap.
+- {{renderer :media-timestamp, 71.48}} Tomorrow's August.
+- {{renderer :media-timestamp, 72.48}} Shit.
+- {{renderer :media-timestamp, 74.48}} Time keeps moving.
+- {{renderer :media-timestamp, 76.48}} Yeah.
+- {{renderer :media-timestamp, 77.48}} Yeah.
+- {{renderer :media-timestamp, 78.48}} All right.
 
----
-tags: [seedling]
-plantedAt: 2023-02-22
-lastTendedAt: 2023-05-31
----
+should be converted to something like this:
 
-There are [[Other File Link|three things]] you should know about things.
+## Small Talk
+	- {{renderer :media-timestamp, 0}} Pleasantries and discussion of the start of the school year.
+		- {{renderer :media-timestamp, 0}} Hello.
+		- {{renderer :media-timestamp, 25.48}} Good morning.
+		- {{renderer :media-timestamp, 27.48}} How are you?
+		- {{renderer :media-timestamp, 28.48}} Good.
+		- {{renderer :media-timestamp, 30.48}} Caffeinated.
+		- {{renderer :media-timestamp, 31.48}} Feeling good.
+		- {{renderer :media-timestamp, 32.48}} Yeah.
+		- {{renderer :media-timestamp, 33.48}} Nice.
+		- {{renderer :media-timestamp, 34.48}} Me too.
+		- {{renderer :media-timestamp, 35.48}} I just had an energy drink.
+		- {{renderer :media-timestamp, 37.48}} Oh, nice.
+		- {{renderer :media-timestamp, 38.48}} Good.
+		- {{renderer :media-timestamp, 39.48}} We're both bouncing off the walls on this very last day of July.
+		- {{renderer :media-timestamp, 43.48}} Oh, is that what it is?
+		- {{renderer :media-timestamp, 45.48}} Yeah, it is.
+		- {{renderer :media-timestamp, 46.48}} Oh, shit.
+		- {{renderer :media-timestamp, 47.48}} Rent's due.
+		- {{renderer :media-timestamp, 48.48}} Boy, that's not a problem.
+		- {{renderer :media-timestamp, 49.48}} It's fine.
+		- {{renderer :media-timestamp, 50.48}} Everything's fine.
+		- {{renderer :media-timestamp, 51.48}} Yes.
+		- {{renderer :media-timestamp, 52.48}} Yes.
+		- {{renderer :media-timestamp, 53.48}} And school starts.
+		- {{renderer :media-timestamp, 55.48}} Oh, that's a good thing.
+		- {{renderer :media-timestamp, 57.48}} Two weeks.
+		- {{renderer :media-timestamp, 58.48}} I don't know when this, when this.
+		- {{renderer :media-timestamp, 60.48}} Your kids start.
+		- {{renderer :media-timestamp, 62.48}} Yeah, I think it's happening.
+		- {{renderer :media-timestamp, 63.48}} I just have a vague sense that it's coming.
+		- {{renderer :media-timestamp, 66.48}} I think very soon.
+		- {{renderer :media-timestamp, 68.48}} Right.
+		- {{renderer :media-timestamp, 69.48}} It's like, oh, beginning August.
+		- {{renderer :media-timestamp, 70.48}} And it's like, oh, crap.
+		- {{renderer :media-timestamp, 71.48}} Tomorrow's August.
+		- {{renderer :media-timestamp, 72.48}} Shit.
+		- {{renderer :media-timestamp, 74.48}} Time keeps moving.
+		- {{renderer :media-timestamp, 76.48}} Yeah.
+		- {{renderer :media-timestamp, 77.48}} Yeah.
+		- {{renderer :media-timestamp, 78.48}} All right.
 
-# Thing 1
+Notice that the original transcript contents are not lost - just indented underneath the summary.
 
-This is a thing with other things that have things associated to those things.
-
-Sometimes, things are cool. Other times, things are not so cool. In fact, things can get hot.
-
-# Thing 2
-
-Here is a list of things:
-- item 1
-- item 2
-- item 3
-
-## Thing 2.1
-
-This is another thing about thing 2.
-
-# Thing 3
-
-Thing 3 is also here.
-
-
-The new filename would be 2023-02-22.md with the following contents:
-
-- ## 3 Things
-	- There are [[Other File Link|three things]] you should know about things.
-	- ### Thing 1
-		- This is a thing with other things that have things associated to those things.
-		- Sometimes, things are cool. Other times, things are not so cool. In fact, things can get hot.
-	- ### Thing 2
-		- Here is a list of things:
-			- item 1
-			- item 2
-			- item 3
-		- #### Thing 2.1
-			- This is another thing about thing 2.
-	- ### Thing 3
-		- Thing 3 is also here.
-
-
-Notice the top level item should always be an h2 with the filename. Each subheading should be
-adjusted to be hierarchal lower than h2 accordingly. Also notice how each subblock is indented
-to be a child of the parent block. Make sure to keep all links intact [[link|link text]].
-
-{formatInstructions}
-
-ONLY INCLUDE RAW, PARSABLE JSON IN YOUR RESPONSE. DO NOT INCLUDE ANYTHING ELSE.
-
-Here is the file I'd like you to transform:
+Here is the file I'd like you to convert:
 
 {fileContents}
 	`,
 });
 
-// return a generator that yields the next file to process
-// by looking in PATH for all files with a .md extension and
-// returning the filename and the contents of the file
-async function* readFiles() {
-	const files = await fs.promises.readdir(PATH);
-	for (const file of files) {
-		if (file.endsWith(".md")) {
-			const contents = await fs.promises.readFile(
-				path.join(PATH, file),
-				"utf8"
-			);
-			yield { file, contents };
-		}
-	}
-}
-
 const llm = new OpenAI({
 	modelName: "gpt-4",
-	temperature: 0,
+	temperature: 0.5,
 });
 
 const chain = new LLMChain({
 	llm,
 	prompt,
-	outputParser: OutputFixingParser.fromLLM(llm, parser),
 });
 
 const run = async () => {
-	// for each file, prompt the agent to transform the file
-	// and write the transformed file to DESTINATION_PATH
-	for await (const { file, contents } of readFiles()) {
-		try {
-			console.log(`Processing file ${file}`);
+	const content = await convertSrtFile();
 
-			const { text: result } = await chain.call({ fileContents: contents });
+	const { text: result } = await chain.call({ fileContents: content });
 
-			console.log(`Saving to ${result.filename}`);
-			console.log();
+	const outputFile = path.join(OUTPUT_PATH, "mind-coach_2023-07-31.md");
 
-			const filename = path.join(DESTINATION_PATH, result.filename);
-			await fs.promises.writeFile(filename, `${result.contents}\n\n`, {
-				flag: "a",
-			});
-		} catch (e) {
-			console.error(`Error parsing file ${file}: ${e}`);
-		}
-	}
+	console.log(`Saving to ${outputFile}`);
+	await fs.promises.writeFile(outputFile, result, "utf8");
+	console.log("Done!");
 };
 
 run();
